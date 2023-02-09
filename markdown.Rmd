@@ -1,0 +1,281 @@
+---
+title: "TableroCarrera2022"
+author: "Brayan Ramirez"
+Date: "2023"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: 
+      bg: "#ffffff"
+      fg: "#45cae9" 
+      primary: "#31d7fd"
+      base_font:
+        google: Prompt
+      code_font:
+        google: JetBrains Mono
+    orientation: rows
+    vertical_layout: fill
+    runtime: ggplot2
+---
+```{r}
+devtools::install_github("dgonxalex80/paqueteMET") # descarga de paqueteMET # descarga paquete que contiene formato 
+```
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(RColorBrewer)
+library(paqueteMET)
+library(flextable)
+# Install thematic and un-comment for themed static plots (i.e., ggplot2)
+# thematic::thematic_rmd()
+```
+
+```{r}
+#importación de datos
+data("CarreraLuz22")
+datos_completos=CarreraLuz22
+datos<-datos_completos[datos_completos$id!="1922",] #revisando la base de datos hay un dato extremo, se decide eliminarlo
+#Filtro hombre en la base de datos
+Bd_Hombres=filter(datos, sex %in% c("Hombre"))
+#Filtro mujer  en la base de datos
+Bd_Mujeres=filter(datos, sex %in% c("Mujer"))
+#tabla del top 10
+top<-datos[1:10,]
+tabla_top<-flextable(top)
+#subconjunto mujeres estandarizado
+women <- subset(datos,sex=="Mujer")
+timerun_M<- scale(women$timerun, center = TRUE, scale = TRUE)
+women<-cbind(timerun_M,women)
+# subconjunto hombres estandarizado
+men <- subset(datos,sex=="Hombre")
+timerun_H<- scale(men$timerun,center=TRUE,scale=TRUE)
+men<-cbind(timerun_H,men)
+```
+
+
+# Participación {data-icon="fa-table"}
+
+Row {data-height=800}
+-------------------------------------
+
+### Caracterización de los partipantes
+
+```{r, fig.width=12, fig.height=5}
+#Establecer máximos  mínimos para el gráfico
+max_1 <- max(datos$edad, na.rm=T)
+min_1 <- min(datos$edad, na.rm=T)
+
+ggplot(mapping = aes(x = edad, fill = sex)) +
+  
+  # histograma de mujeres
+  geom_histogram(data = datos %>% filter(sex == "Mujer"),
+                 breaks = seq(from = floor(min_1),        # secuencia de valores, por 0.5s
+                 to = ceiling(max_1),
+                 by = 2),
+                 colour = "white") +
+  
+  # histograma de hombres (valores convertidos a negativo)
+  geom_histogram(data = datos %>% filter(sex == "Hombre"),
+                 breaks = seq(from = floor(min_1),        # secuencia de valores, por 2s
+                 to = ceiling(max_1),
+                 by = 2),
+                 mapping = aes(y = ..count..*(-1)),
+                 colour = "white")+
+  coord_flip()+
+  labs(
+    title = "Cantidad de participantes por edad y sexo",
+    x = "Edad",
+    y = "Cantidad participantes", cex.sub=5,
+    fill = NULL)
+
+```
+
+### Participación general
+
+```{r}
+#definir datos
+Porcentaje_sexo<- datos %>%
+  group_by(sex) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(porcentaje = `n`/ sum(`n`)*100)
+#crear gráfico
+ggplot(data= Porcentaje_sexo,
+       aes(x = 1, y = porcentaje, fill = sex))+
+  geom_bar(stat = "identity")+ 
+  geom_text(
+    aes(label =paste0(round(porcentaje,1),"%")),
+      position = position_stack(vjust = .5))+
+  coord_polar(theta = "y")+
+    labs(
+    title = "Porcentaje de participantes por sexo",cex.sub=8)+
+  theme_void()
+```   
+  
+Row {data-height=200}
+-------------------------------------
+   
+### Participación categoria Juvenil
+```{r}
+gauge(
+  36.8, 
+  min = 0, 
+  max = 100, 
+  symbol = '%', 
+  label = "mujeres",
+  gaugeSectors(
+  success = NULL,
+  warning = NULL,
+  danger = NULL,
+  colors = c("#00BFC4", "warning", "danger")))
+```
+### Participación categoria Abierta
+```{r}
+gauge(
+  42.5, 
+  min = 0, 
+  max = 100, 
+  symbol = '%', 
+  label = "mujeres",
+  gaugeSectors(
+  success = NULL,
+  warning = NULL,
+  danger = NULL,
+  colors = c("#00BFC4", "warning", "danger")))
+```
+### Participación categoria Veteranos A
+```{r}
+gauge(
+  34.7, 
+  min = 0, 
+  max = 100, 
+  symbol = '%', 
+  label = "mujeres",
+  gaugeSectors(
+  success = NULL,
+  warning = NULL,
+  danger = NULL,
+  colors = c("#00BFC4", "warning", "danger")))
+```
+### Participación categoria Veteranos B
+```{r}
+gauge(
+  31.71, 
+  min = 0, 
+  max = 100, 
+  symbol = '%', 
+  label = "mujeres",
+  gaugeSectors(
+  success = NULL,
+  warning = NULL,
+  danger = NULL,
+  colors = c("#00BFC4", "warning", "danger")))
+```
+### Participación categoria Veteranos C
+```{r}
+gauge(
+  21.9, 
+  min = 0, 
+  max = 100, 
+  symbol = '%', 
+  label = "mujeres",
+  gaugeSectors(
+  success = NULL,
+  warning = NULL,
+  danger = NULL,
+  colors = c("#00BFC4", "warning", "danger")))
+```
+### Convención
+![](hymlisto.png){width=40px}
+
+
+
+# Hombres vs mujeres {data-icon="fa-user"}
+
+
+Row {data-height=550}
+-------------------------------------
+
+    
+### Tiempo de mujeres y hombres por edad
+    
+```{r, fig.width=12, fig.height=5}
+ggplot(datos) +
+ geom_point(
+   aes(
+     x = edad,                                                #variable x
+     y = timerun,                                             # variable y
+     color = sex,                                       #color
+     ))+                                           
+   ggtitle('Edad vs Tiempo de carrera Participantes')+       #título del gráfico
+   theme(plot.title=element_text(hjust=0.5))+                #centrado del titulo
+    labs(
+    title = "Desempeño por sexo y categoria",
+    x = "Edad",
+    y = "Tiempo",
+    fill = NULL)+
+  geom_smooth(aes(x = edad, y = timerun))
+
+```
+
+### Pirámide participación mujeres y hombres
+```{r, fig.width=12, fig.height=5}
+#gráfico de desempeño por categoría
+cajas_categoriatimerun = ggplot(data = datos, mapping = aes(x = categoria, y = timerun, fill=sex)) +
+  labs(
+    title = "Desempeño por sexo de los participantes",
+    x = "Categoría",
+    y = "Tiempo")+
+  geom_boxplot()
+cajas_categoriatimerun
+```
+
+
+Row {data-height=450}
+-------------------------------------
+
+   
+### Tiempo Mujeres por edad (Estandarizado)
+```{r, fig.width=7, fig.height=3}
+puntos_mujerestiempo = ggplot(women,  aes(
+     x = edad, 
+     y = timerun_M)) +
+ geom_point(color = "#00BFC4")+
+     ggtitle('Edad vs Tiempo Mujeres')+               #título del gráfico
+   theme(plot.title=element_text(hjust=0.5))+         #centrado del titulo
+      labs(
+    title = "Desempeño Mujeres",
+    x = "Edad",
+    y = "Tiempo",
+    fill = NULL)+
+  geom_smooth(aes(x = edad, y = timerun_M))
+puntos_mujerestiempo
+```
+
+### Tiempo Hombres por edad (Estandarizado)
+```{r, fig.width=7, fig.height=3}
+puntos_hombrestiempo = ggplot(men, aes(
+     x = edad, 
+     y = timerun_H)) +
+ geom_point(
+     color = "#F8766D")+
+    ggtitle('Edad vs Tiempo Hombres')+               #título del gráfico
+   theme(plot.title=element_text(hjust=0.5))+         #centrado del titulo
+        labs(
+    title = "Desempeño Hombres",
+    x = "Edad",
+    y = "Tiempo",
+    fill = NULL)+
+  geom_smooth(aes(x = edad, y = timerun_H))
+puntos_hombrestiempo
+
+```
+
+### Convención
+![](hymlisto.png){width=40px}
+
+
+
